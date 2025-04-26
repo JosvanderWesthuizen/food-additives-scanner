@@ -48,7 +48,7 @@ export default function History() {
   return (
     <div className="flex flex-col flex-1">
       <div className="p-4 bg-background border-b flex items-center justify-between">
-        <h1 className="text-2xl font-bold">History</h1>
+        <h1 className="text-2xl font-bold">Food Additives Scanner</h1>
       </div>
 
       {loading ? (
