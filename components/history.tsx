@@ -94,17 +94,6 @@ export default function History() {
           ))}
         </div>
       )}
-      {history.length > 0 && (
-        <div className="fixed bottom-20 right-4">
-          <Button
-            onClick={() => router.push("/?tab=scanner")}
-            className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 shadow-lg"
-          >
-            <span className="sr-only">Scan</span>
-            <div className="text-white">📷</div>
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
