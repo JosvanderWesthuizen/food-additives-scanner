@@ -2,10 +2,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Scanner from "@/components/scanner"
 import History from "@/components/history"
 import Search from "@/components/search"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export default function Home() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center">
+      <PWAInstallPrompt />
       <div className="w-full max-w-md flex flex-col min-h-[100dvh] pb-16">
         <Tabs defaultValue="history" className="w-full flex flex-col flex-1">
           <TabsContent value="history" className="flex-1 p-0 mt-0">
