@@ -5,55 +5,85 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { scanBarcode } from "@/lib/barcode-scanner"
+import { 
+  initBarcodeScanner, 
+  startBarcodeScanner, 
+  stopBarcodeScanner, 
+  onDetected,
+  removeEventListeners
+} from "@/lib/barcode-scanner"
 import { fetchProductData } from "@/lib/api"
 import { saveToHistory } from "@/lib/storage"
 
 export default function Scanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scanning, setScanning] = useState(false)
   const [loading, setLoading] = useState(false)
+  const scannerInitializedRef = useRef(false)
   const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
     let stream: MediaStream | null = null
-    const animationFrameId: number | null = null
-    let scanInterval: NodeJS.Timeout | null = null
+
+    // Only initialize the scanner once
+    if (scannerInitializedRef.current) return;
 
     const startCamera = async () => {
       try {
+        // Get camera stream
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { 
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
         })
 
         if (videoRef.current) {
+          // Set video source to camera stream
           videoRef.current.srcObject = stream
-          await videoRef.current.play()
-          setScanning(true)
-
-          // Start scanning for barcodes
-          scanInterval = setInterval(() => {
-            if (videoRef.current && canvasRef.current && !loading) {
-              const canvas = canvasRef.current
-              const video = videoRef.current
-              const ctx = canvas.getContext("2d")
-
-              if (ctx) {
-                canvas.width = video.videoWidth
-                canvas.height = video.videoHeight
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-                const code = scanBarcode(imageData)
-
-                if (code) {
-                  handleBarcode(code)
-                }
+          
+          // Wait for video to be ready
+          videoRef.current.onloadedmetadata = async () => {
+            try {
+              if (videoRef.current) {
+                // Play the video
+                await videoRef.current.play()
+                
+                console.log("Video is playing, initializing barcode scanner")
+                
+                // Initialize the barcode scanner
+                await initBarcodeScanner(videoRef.current, {
+                  debug: true, // Enable debug for troubleshooting
+                  patchSize: 'medium',
+                  halfSample: true,
+                  locate: true
+                })
+                
+                // Set up barcode detection callback
+                onDetected((code) => {
+                  console.log("Barcode detected in callback:", code)
+                  if (!loading) {
+                    handleBarcode(code)
+                  }
+                })
+                
+                // Start the scanner
+                startBarcodeScanner()
+                setScanning(true)
+                scannerInitializedRef.current = true
+                console.log("Barcode scanner started successfully")
               }
+            } catch (playError) {
+              console.error("Error playing video:", playError)
+              toast({
+                title: "Video Error",
+                description: "Unable to play camera stream. Please try again.",
+                variant: "destructive",
+              })
             }
-          }, 500) // Scan every 500ms
+          }
         }
       } catch (error) {
         console.error("Error accessing camera:", error)
@@ -67,22 +97,34 @@ export default function Scanner() {
 
     startCamera()
 
+    // Cleanup function
     return () => {
+      console.log("Cleaning up scanner component")
+      
+      // Stop the scanner
+      if (scanning) {
+        stopBarcodeScanner()
+        removeEventListeners()
+        console.log("Barcode scanner stopped")
+      }
+      
+      // Stop the camera stream
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+        stream.getTracks().forEach((track) => {
+          track.stop()
+          console.log("Camera track stopped")
+        })
       }
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
-      if (scanInterval) {
-        clearInterval(scanInterval)
-      }
+      
       setScanning(false)
+      scannerInitializedRef.current = false
     }
-  }, [toast, loading])
+  }, [toast]) // Only depend on toast, not on scanning or loading
 
   const handleBarcode = async (barcode: string) => {
+    console.log("Processing barcode:", barcode)
     setLoading(true)
+    
     try {
       const productData = await fetchProductData(barcode)
       if (productData) {
@@ -96,6 +138,7 @@ export default function Scanner() {
           description: "This product was not found in the database.",
           variant: "destructive",
         })
+        setLoading(false)
       }
     } catch (error) {
       console.error("Error fetching product data:", error)
@@ -104,7 +147,6 @@ export default function Scanner() {
         description: "Failed to fetch product data. Please try again.",
         variant: "destructive",
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -113,12 +155,24 @@ export default function Scanner() {
     <div className="relative flex flex-col flex-1">
       <div className="p-4 bg-background border-b">
         <h1 className="text-2xl font-bold">Scan Barcode</h1>
-        <p className="text-muted-foreground">Point camera at product barcode</p>
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${scanning ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <p className="text-muted-foreground">
+            {scanning 
+              ? "Scanner active - point at product barcode" 
+              : "Starting camera..."}
+          </p>
+        </div>
       </div>
 
       <div className="relative flex-1 bg-black">
-        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
-        <canvas ref={canvasRef} className="hidden" />
+        <video 
+          ref={videoRef} 
+          className="absolute inset-0 w-full h-full object-cover" 
+          playsInline 
+          muted 
+          autoPlay
+        />
 
         {/* Scanning overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
