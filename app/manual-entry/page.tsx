@@ -57,7 +57,7 @@ export default function ManualEntryPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-[100dvh] flex-col">
       <div className="p-4 bg-background border-b flex items-center">
         <Button variant="ghost" className="p-2 h-auto mr-2" onClick={() => router.back()}>
           <ChevronLeft className="h-5 w-5" />

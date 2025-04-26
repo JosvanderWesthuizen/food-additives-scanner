@@ -35,7 +35,7 @@ export default function ProductPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-[100dvh] items-center justify-center">
         <p>Loading product information...</p>
       </div>
     )
@@ -43,7 +43,7 @@ export default function ProductPage() {
 
   if (!product) {
     return (
-      <div className="flex min-h-screen flex-col p-4">
+      <div className="flex min-h-[100dvh] flex-col p-4">
         <Button variant="ghost" className="w-fit p-0 h-auto mb-4" onClick={() => router.back()}>
           <ChevronLeft className="h-5 w-5 mr-1" />
           Back
@@ -87,7 +87,7 @@ export default function ProductPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-[100dvh] flex-col">
       <div className="p-4 bg-background border-b flex items-center">
         <Button variant="ghost" className="p-2 h-auto mr-2" onClick={() => router.back()}>
           <ChevronLeft className="h-5 w-5" />

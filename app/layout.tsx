@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description: "Scan food products to check additives and their risk levels",
   manifest: "/manifest.json",
   themeColor: "#4CAF50",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-    generator: 'v0.dev'
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
