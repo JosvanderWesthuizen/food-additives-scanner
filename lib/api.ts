@@ -1,4 +1,5 @@
 import type { Product, Additive } from "./types"
+import additivesData from "./additives.json"
 
 // Function to fetch product data from Open Food Facts API
 export async function fetchProductData(barcode: string): Promise<Product | null> {
@@ -88,56 +89,43 @@ function extractAdditives(productData: any): Additive[] {
 
 // Function to get additive information (function and risk level)
 function getAdditiveInfo(code: string): { function: string; risk_level: string } {
-  // This is a simplified version. In a real app, you would have a comprehensive database
-  // of additives with their functions and risk levels.
+  // Use data from additives.json
+  const lookupKey = `en:${code.toLowerCase()}`
+  const additiveEntry = (additivesData as any)[lookupKey]
 
-  // Example mapping of some common additives
-  const additivesInfo: Record<string, { function: string; risk_level: string }> = {
-    // Colors
-    e100: { function: "Food coloring", risk_level: "low" },
-    e101: { function: "Food coloring", risk_level: "low" },
-    e102: { function: "Food coloring", risk_level: "high" },
-    e104: { function: "Food coloring", risk_level: "high" },
+  let riskLevel = "medium" // Default risk level
+  let additiveFunction = "Food additive" // Default function
 
-    // Preservatives
-    e200: { function: "Preservative", risk_level: "medium" },
-    e210: { function: "Preservative", risk_level: "high" },
-    e220: { function: "Preservative", risk_level: "high" },
+  if (additiveEntry) {
+    // Extract risk level
+    const riskValue = additiveEntry.efsa_evaluation_overexposure_risk?.en
+    if (riskValue) {
+      const extractedRisk = riskValue.split(":").pop()?.toLowerCase()
+      if (extractedRisk === "high" || extractedRisk === "medium" || extractedRisk === "low") {
+        riskLevel = extractedRisk
+      }
+      // Add other potential risk mappings if needed from the JSON data structure
+    }
 
-    // Antioxidants
-    e300: { function: "Antioxidant", risk_level: "low" },
-    e301: { function: "Antioxidant", risk_level: "low" },
-    e310: { function: "Antioxidant", risk_level: "medium" },
-
-    // Thickeners
-    e400: { function: "Thickener", risk_level: "low" },
-    e407: { function: "Thickener", risk_level: "medium" },
-
-    // Flavor enhancers
-    e620: { function: "Flavor enhancer", risk_level: "medium" },
-    e621: { function: "Flavor enhancer", risk_level: "high" }, // MSG
-
-    // Sweeteners
-    e950: { function: "Sweetener", risk_level: "medium" },
-    e951: { function: "Sweetener", risk_level: "medium" }, // Aspartame
-
-    // Anticaking agents
-    e551: { function: "Anticaking agent", risk_level: "high" }, // Silicon dioxide
+    // Extract function (example: take the first class)
+    const classValue =
+      additiveEntry.mandatory_additive_class?.en || additiveEntry.additives_classes?.en
+    if (classValue) {
+      const firstClass = classValue.split(",")[0].split(":").pop()
+      if (firstClass) {
+        // Simple formatting: replace hyphens, capitalize
+        additiveFunction = firstClass
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (l: string) => l.toUpperCase())
+      }
+    }
+  } else {
+    console.warn(`Additive info not found for code: ${code} (key: ${lookupKey})`)
   }
 
-  // Normalize code to lowercase without 'e' prefix if it exists
-  const normalizedCode = code.toLowerCase().replace(/^e/, "")
-
-  // Check if we have info for this additive
-  const eCode = `e${normalizedCode}`
-  if (additivesInfo[eCode]) {
-    return additivesInfo[eCode]
-  }
-
-  // Default values if not found
   return {
-    function: "Food additive",
-    risk_level: "medium", // Default to medium if unknown
+    function: additiveFunction,
+    risk_level: riskLevel,
   }
 }
 
